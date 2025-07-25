@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Profile</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .profile {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .profile img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #6c63ff;
+    }
+
+    .profile-details h2 {
+      margin: 0 0 5px;
+    }
+
+    .profile-details p {
+      margin: 4px 0;
+      font-weight: 500;
+    }
+
+    .spots {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .spot-card {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s ease;
+    }
+
+    .spot-card:hover {
+      transform: scale(1.02);
+    }
+
+    .spot-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .spot-content {
+      padding: 15px;
+    }
+
+    .spot-content h3 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+    }
+
+    .spot-stats {
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="profile">
+      <img id="profile-image" src="" alt="Profile Picture" />
+      <div class="profile-details">
+        <h2 id="username">Loading...</h2>
+        <p id="score">Score: </p>
+        <p id="postcount">Posts: </p>
+        <p id="followers">Followers: </p>
+        <p id="following">Following: </p>
+      </div>
+    </div>
+
+    <div class="spots" id="spots-container">
+      <!-- Spot cards will appear here -->
+    </div>
+  </div>
+
+  <script>
+    async function loadUserProfile(username) {
+      try {
+        // Fetch profile details
+        const profileRes = await fetch("http://localhost:4000/return-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username })
+        });
+
+        const profile = await profileRes.json();
+        if (!profile || !profile.username) {
+          alert("❌ Profile not found.");
+          return;
+        }
+
+        // Fetch follow counts
+        const followRes = await fetch("http://localhost:4000/getfollows-info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username })
+        });
+
+        const follow = await followRes.json();
+
+        document.getElementById("username").textContent = profile.username;
+        document.getElementById("profile-image").src = profile.profile_image;
+        document.getElementById("postcount").textContent = `Posts: ${profile.postcount}`;
+        document.getElementById("score").textContent = `Score: ${profile.score}`;
+        document.getElementById("followers").textContent = `Followers: ${follow.followersCount}`;
+        document.getElementById("following").textContent = `Following: ${follow.followingCount}`;
+
+        const container = document.getElementById("spots-container");
+        container.innerHTML = "";
+
+        profile.uploaded_spots.forEach(spot => {
+          const card = document.createElement("div");
+          card.className = "spot-card";
+          card.innerHTML = `
+            <img src="${spot.spotimage}" alt="${spot.title}" />
+            <div class="spot-content">
+              <h3>${spot.title}</h3>
+              <p class="spot-stats">👁️ ${spot.viewscount} views · ❤️ ${spot.likescount} likes</p>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+
+      } catch (error) {
+        console.error("🚨 Error:", error);
+        alert("Something went wrong.");
+      }
+    }
+
+    // 👉 Replace with dynamic username
+    loadUserProfile("Zameer");
+  </script>
+
+</body>
+
+</html>

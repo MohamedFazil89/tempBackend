@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Journey Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .hidden { display: none; }
+    .screen { margin-bottom: 20px; }
+    button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    input, textarea { padding: 6px; margin: 5px 0; width: 100%; }
+    .preview img, .preview audio { max-width: 200px; margin-top: 10px; display: block; }
+    .pin-container { margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Journey Tracker</h1>
+
+  <!-- 1. Select Mode -->
+  <div id="mode-screen" class="screen">
+    <button onclick="checkJourneyStatus()">Create Journey</button>
+  </div>
+
+  <!-- 2. Journey Form -->
+  <div id="journey-form" class="screen hidden">
+    <h3>Start Journey</h3>
+    <input id="username" placeholder="Username" />
+    <input id="journeyname" placeholder="Journey Name" />
+    <input id="source-lat" placeholder="Source Latitude" />
+    <input id="source-lon" placeholder="Source Longitude" />
+    <button onclick="startJourney()">Start</button>
+  </div>
+
+  <!-- 3. Active Journey Screen -->
+  <div id="active-journey" class="screen hidden">
+    <h3>Journey is Live</h3>
+    <p><strong>Journey:</strong> <span id="journey-label"></span></p>
+    <button onclick="document.getElementById('upload-form').classList.toggle('hidden')">Add Pin</button>
+    <div id="upload-form" class="hidden">
+      <input id="title" placeholder="Spot Title" />
+      <input id="latitude" placeholder="Latitude" />
+      <input id="longitude" placeholder="Longitude" />
+      <input type="file" id="audio" accept="audio/*" />
+      <input type="file" id="image" accept="image/*" />
+      <button onclick="uploadSpot()">Upload Pin</button>
+    </div>
+    <div id="preview" class="preview"></div>
+    <button onclick="endJourney()">End Journey</button>
+  </div>
+
+  <script>
+    const api = "http://localhost:4000";
+    let username = "";
+    let journeyname = "";
+
+    function checkJourneyStatus() {
+      username = prompt("Enter your username:");
+      if (!username) return alert("Username required.");
+      localStorage.setItem("username", username);
+
+      fetch(`${api}/journey-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.journeyStatus) {
+          alert("You already have an active journey");
+          journeyname = data.journeyname || "Active Journey";
+          loadActiveScreen();
+        } else {
+          document.getElementById("mode-screen").classList.add("hidden");
+          document.getElementById("journey-form").classList.remove("hidden");
+        }
+      });
+    }
+
+    function startJourney() {
+      username = document.getElementById("username").value.trim();
+      journeyname = document.getElementById("journeyname").value.trim();
+      const lat = parseFloat(document.getElementById("source-lat").value);
+      const lon = parseFloat(document.getElementById("source-lon").value);
+
+      if (!username || !journeyname || isNaN(lat) || isNaN(lon)) {
+        return alert("Please fill in all fields correctly.");
+      }
+
+      localStorage.setItem("username", username);
+
+      fetch(`${api}/start-journey`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, journeyname, source: { lat, lon } })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          loadActiveScreen();
+        } else {
+          alert(data.message);
+        }
+      });
+    }
+
+    function loadActiveScreen() {
+      document.getElementById("journey-label").textContent = journeyname;
+      document.getElementById("journey-form").classList.add("hidden");
+      document.getElementById("mode-screen").classList.add("hidden");
+      document.getElementById("active-journey").classList.remove("hidden");
+      fetchJourneyPins();
+    }
+
+    function uploadSpot() {
+      const formData = new FormData();
+      formData.append("username", username);
+      formData.append("journeyname", journeyname);
+      formData.append("title", document.getElementById("title").value);
+      formData.append("latitude", document.getElementById("latitude").value);
+      formData.append("longitude", document.getElementById("longitude").value);
+      formData.append("audio", document.getElementById("audio").files[0]);
+      formData.append("image", document.getElementById("image").files[0]);
+
+      fetch(`${api}/journey-upload`, {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+        fetchJourneyPins();
+      });
+    }
+
+    function fetchJourneyPins() {
+      fetch(`${api}/return-journey-pins`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, journeyname })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("preview");
+        container.innerHTML = "";
+
+        if (data.success && Array.isArray(data.spotpins)) {
+          data.spotpins.forEach(pin => {
+            container.innerHTML += `
+              <div class="pin-container">
+                <h4>${pin.title}</h4>
+                <p>📍 ${pin.latitude}, ${pin.longitude}</p>
+                <img src="${pin.image_url}" alt="Spot image" />
+                <audio controls src="${pin.audio_url}"></audio>
+              </div>
+            `;
+          });
+        }
+
+        if (data.destination) {
+          const { lat, lon } = data.destination;
+          container.innerHTML += `<p><strong>Destination:</strong> ${lat}, ${lon}</p>`;
+        }
+      });
+    }
+
+    function endJourney() {
+      fetch(`${api}/end-journey`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+        location.reload();
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test /fullspot API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #result img {
+      max-width: 100%;
+      margin-top: 10px;
+    }
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🎧 Test Spot Fetch (/fullspot)</h2>
+
+  <label>Username:
+    <input type="text" id="username" placeholder="e.g. Fazil" />
+  </label><br />
+
+  <label>Latitude:
+    <input type="number" id="lat" placeholder="e.g. 12.9716" />
+  </label><br />
+
+  <label>Longitude:
+    <input type="number" id="lon" placeholder="e.g. 77.5946" />
+  </label><br />
+
+  <button onclick="fetchSpot()">Fetch Spot</button>
+
+  <div id="result" style="margin-top: 20px;"></div>
+
+  <script>
+    async function fetchSpot() {
+      const username = document.getElementById("username").value;
+      const lat = document.getElementById("lat").value;
+      const lon = document.getElementById("lon").value;
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "⏳ Loading...";
+
+      if (!username || !lat || !lon) {
+        resultDiv.innerHTML = `<p style="color: red;">❌ Please fill all fields</p>`;
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:4000/fullspot?username=${encodeURIComponent(username)}&lat=${lat}&lon=${lon}`);
+
+        if (!res.ok) {
+          const err = await res.json();
+          resultDiv.innerHTML = `<p style="color: red;">❌ Error: ${err.error}</p>`;
+          return;
+        }
+
+        const data = await res.json();
+
+        resultDiv.innerHTML = `
+          <h3>📍 ${data.spotname}</h3>
+          <p><strong>User:</strong> ${data.username}</p>
+          <p><strong>Location:</strong> ${data.latitude}, ${data.longitude}</p>
+          <img src="${data.image}" alt="Spot image" />
+          <audio controls src="${data.audio}">
+            Your browser doesn't support audio playback.
+          </audio>
+          <p>${data.transcription}</p>
+        `;
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color: red;">❌ Fetch Failed: ${err.message}</p>`;
+      }
+    }
+  </script>
+
+</body>
+</html>

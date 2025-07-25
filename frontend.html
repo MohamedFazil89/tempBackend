@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload a Spot</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 540px;
+      margin: 2rem auto;
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+      width: 100%;
+      padding: 0.5rem;
+    }
+
+    button {
+      margin-top: 1.5rem;
+    }
+
+    #msg {
+      margin-top: 2rem;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Upload a Spot</h1>
+
+  <form id="spotForm">
+    <label>
+      Username
+      <input name="username" required />
+    </label>
+
+    <label>
+      Spot Name
+      <input name="spotname" required />
+    </label>
+
+    <label>
+      Latitude
+      <input name="latitude" type="number" step="any" required />
+    </label>
+
+    <label>
+      Longitude
+      <input name="longitude" type="number" step="any" required />
+    </label>
+
+    <label>
+      Caption
+      <textarea name="caption" rows="2"></textarea>
+    </label>
+
+    <label>
+      Transcription
+      <textarea name="transcription" rows="2"></textarea>
+    </label>
+
+    <label>
+      Translated Captions (JSON)
+      <textarea name="translated_captions" rows="3" placeholder='e.g. {"es":"Hola", "fr":"Salut"}'></textarea>
+    </label>
+
+    <label>
+      Summary
+      <textarea name="summary" rows="2"></textarea>
+    </label>
+
+    <label>
+      Description
+      <textarea name="description" rows="2">More</textarea>
+    </label>
+
+    <label>
+      Category
+      <select name="category">
+        <option value="Foodie Finds">Foodie Finds</option>
+        <option value="Funny Tales">Funny Tales</option>
+        <option value="History Whishpers">History Whishpers</option>
+        <option value="Hidden spots">Hidden spots</option>
+        <option value="Art & Culture">Art & Culture</option>
+        <option value="Legends & Myths">Legends & Myths</option>
+        <option value="Shopping Gems">Shopping Gems</option>
+        <option value="Festive Movements">Festive Movements</option>
+      </select>
+
+    </label>
+
+    <!-- Fixed value for original_language -->
+    <input type="hidden" name="original_language" value="en" />
+
+    <label>
+      Audio file (.m4a, .mp3…)
+      <input name="audio" type="file" accept="audio/*" required />
+    </label>
+
+    <label>
+      Image file (.jpg, .png…)
+      <input name="image" type="file" accept="image/*" required />
+    </label>
+
+    <button type="submit">Send to /spots</button>
+  </form>
+
+  <div id="msg"></div>
+
+  <script>
+    const form = document.getElementById('spotForm');
+    const msg = document.getElementById('msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = 'Uploading…';
+
+      try {
+        const formData = new FormData(form);
+
+        const res = await fetch('http://localhost:4000/spots', {
+          method: 'POST',
+          body: formData
+        });
+
+        const txt = await res.text();
+        if (!res.ok) throw new Error(txt);
+
+        msg.textContent = '✅ Success:\n' + txt;
+      } catch (err) {
+        msg.textContent = '❌ Error:\n' + err.message;
+      }
+    });
+  </script>
+</body>
+
+</html>
