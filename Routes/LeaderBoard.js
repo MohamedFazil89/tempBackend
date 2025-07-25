@@ -1,7 +1,6 @@
 import express from "express";
 import getLocationName from "../functions/getLocationName.js"
 import { supabase } from "../SupabaseConfig/supabaseClient.js";
-import axios from "axios";
 
 const app = express()
 
